@@ -5,10 +5,10 @@ services:
     image: mariadb:10.11
     restart: always
     environment:
-      MYSQL_DATABASE: nentis
-      MYSQL_USER: sik
-      MYSQL_PASSWORD: '00'
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ${DB_NAME:-nentis}
+      MYSQL_USER: ${DB_USER:-sik}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-00}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
     ports:
       - "3306:3306"
     volumes:
@@ -30,10 +30,18 @@ services:
     depends_on:
       - db
     environment:
+      - SECRET_KEY=${SECRET_KEY:-}
       - DB_HOST=db
-      - DB_NAME=nentis
-      - DB_USER=sik
-      - DB_PASSWORD=00
+      - DB_NAME=${DB_NAME:-nentis}
+      - DB_USER=${DB_USER:-sik}
+      - DB_PASSWORD=${DB_PASSWORD:-00}
+      - DB_PORT=3306
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMISI_USERNAME=${ADMISI_USERNAME:-admisi}
+      - ADMISI_PASSWORD=${ADMISI_PASSWORD:-admisi123}
+      - DOKTER_USERNAME=${DOKTER_USERNAME:-dokter}
+      - DOKTER_PASSWORD=${DOKTER_PASSWORD:-dokter123}
 
   nginx:
     image: nginx:alpine

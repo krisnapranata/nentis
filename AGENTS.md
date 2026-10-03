@@ -18,6 +18,10 @@ Use the bundled venv (`./venv/bin/python`); do not assume a global Python.
 
 - `seed_data` creates: `admin/admin123`, `admisi/admisi123`, `dokter/dokter123`.
   README's "Akun Default" table (admin/admin, etc.) is **stale** — trust seed_data.
+  Usernames/passwords come from env (`ADMIN_USERNAME`/`ADMIN_PASSWORD`, etc.).
+- Secrets (SECRET_KEY, DB creds, seed users) are read from `.env` via
+  `python-dotenv` in `config/settings.py`. `.env` is gitignored; see `.env.example`.
+  Keep these in env, never hardcode.
 - Tests are empty placeholders (`* /tests.py` contain only `pass`-style stubs).
   `manage.py test` needs a MySQL test database and will likely fail without
   CREATE DATABASE privileges — verify behavior manually or via the shell instead.

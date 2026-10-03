@@ -70,6 +70,17 @@ TERDAFTAR → MENUNGGU → DIPANGGIL → DIPERIKSA → SELESAI
 - [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
 - Atau: Python 3.10+, MariaDB/MySQL, virtualenv
 
+## Konfigurasi (`.env`)
+
+Semua nilai rahasia (SECRET_KEY, kredensial database, akun default) dibaca dari file `.env`.
+
+```bash
+cp .env.example .env   # lalu isi nilainya
+```
+
+Jika `.env` tidak ada, aplikasi memakai nilai default yang ada di `config/settings.py`
+(hanya untuk development). Jangan commit `.env` ke git.
+
 ## Menjalankan dengan Docker
 
 ### Standalone (db + web + nginx)

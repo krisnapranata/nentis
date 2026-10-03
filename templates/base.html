@@ -209,6 +209,13 @@
                         </a>
                     </li>
                     {% endif %}
+                    {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'user_list' %}">
+                            <i class="bi bi-people-gear"></i> Kelola User
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 <div class="d-flex align-items-center gap-2">
                     <span class="text-muted small">

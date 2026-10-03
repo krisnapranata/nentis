@@ -1,3 +1,5 @@
+import os
+
 from django.core.management.base import BaseCommand
 
 from accounts.models import User
@@ -8,29 +10,36 @@ class Command(BaseCommand):
     help = 'Seed initial data: admin, admisi, dokter users, and master obat'
 
     def handle(self, *args, **options):
-        if not User.objects.filter(username='admin').exists():
+        admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+        admisi_username = os.environ.get('ADMISI_USERNAME', 'admisi')
+        admisi_password = os.environ.get('ADMISI_PASSWORD', 'admisi123')
+        dokter_username = os.environ.get('DOKTER_USERNAME', 'dokter')
+        dokter_password = os.environ.get('DOKTER_PASSWORD', 'dokter123')
+
+        if not User.objects.filter(username=admin_username).exists():
             User.objects.create_superuser(
-                username='admin',
-                password='admin123',
+                username=admin_username,
+                password=admin_password,
                 role='admin',
             )
-            self.stdout.write(self.style.SUCCESS('Admin user created (admin/admin123)'))
+            self.stdout.write(self.style.SUCCESS(f'Admin user created ({admin_username})'))
 
-        if not User.objects.filter(username='admisi').exists():
+        if not User.objects.filter(username=admisi_username).exists():
             User.objects.create_user(
-                username='admisi',
-                password='admisi123',
+                username=admisi_username,
+                password=admisi_password,
                 role='admisi',
             )
-            self.stdout.write(self.style.SUCCESS('Admisi user created (admisi/admisi123)'))
+            self.stdout.write(self.style.SUCCESS(f'Admisi user created ({admisi_username})'))
 
-        if not User.objects.filter(username='dokter').exists():
+        if not User.objects.filter(username=dokter_username).exists():
             User.objects.create_user(
-                username='dokter',
-                password='dokter123',
+                username=dokter_username,
+                password=dokter_password,
                 role='dokter',
             )
-            self.stdout.write(self.style.SUCCESS('Dokter user created (dokter/dokter123)'))
+            self.stdout.write(self.style.SUCCESS(f'Dokter user created ({dokter_username})'))
 
         master_obat_list = [
             ('Paracetamol 500mg', '500mg', 'tablet'),

@@ -1,6 +1,6 @@
 # Nentis - Sistem Klinik Gigi
 
-Sistem informasi klinik gigi berbasis **Django** untuk mengelola alur pelayanan pasien dari pendaftaran hingga selesai.
+Sistem informasi klinik gigi berbasis **Django** untuk mengelola alur pelayanan pasien dari pendaftaran hingga selesai. Siap produksi via Docker, bisa diakses publik dengan HTTPS lewat Nginx Proxy Manager.
 
 ## Alur Pelayanan
 
@@ -27,11 +27,11 @@ Pendaftaran (langsung dapat nomor antrean) → Antrean → Panggil → Pemeriksa
 | Komponen   | Teknologi                        |
 |------------|----------------------------------|
 | Backend    | Python 3.12 + Django 4.2         |
-| Database   | MariaDB / MySQL                  |
+| Database   | MariaDB 10.6                     |
 | Frontend   | Django Template + Bootstrap 5    |
 | Interaksi  | HTMX                             |
 | QR Code    | qrcode + Pillow                  |
-| Deployment | Docker + Gunicorn + Nginx        |
+| Deployment | Docker + Gunicorn + Nginx/NPM    |
 
 ## Struktur Proyek
 
@@ -49,11 +49,13 @@ nentis/
 ├── static/           # File statis (CSS, JS, gambar)
 ├── templates/        # Template HTML Django (project-level)
 ├── media/            # File upload (QR code, dll)
+├── deploy/           # Script setup mirror registry & deploy
 ├── Dockerfile
-├── docker-compose.yml          # db + web + nginx (standalone)
-├── docker-compose.server.yml   # db + web (untuk server dengan reverse proxy)
+├── .dockerignore
+├── docker-compose.yml           # db + web + nginx (standalone, port 80)
+├── docker-compose.server.yml    # db + web (port 8002, tanpa nginx)
+├── docker-compose.npm.yml       # overlay: gabungkan web ke jaringan NPM
 ├── nginx.conf
-├── deploy/                     # setup mirror registry + deploy script
 ├── manage.py
 └── requirements.txt
 ```
@@ -73,18 +75,35 @@ TERDAFTAR → MENUNGGU → DIPANGGIL → DIPERIKSA → SELESAI
 
 ## Konfigurasi (`.env`)
 
-Semua nilai rahasia (SECRET_KEY, kredensial database, akun default) dibaca dari file `.env`.
+Semua nilai rahasia (SECRET_KEY, kredensial database, akun default) dibaca dari file `.env` yang tidak di-commit.
 
 ```bash
 cp .env.example .env   # lalu isi nilainya
 ```
 
-Jika `.env` tidak ada, aplikasi memakai nilai default yang ada di `config/settings.py`
-(hanya untuk development). Jangan commit `.env` ke git.
+Contoh untuk produksi HTTPS di belakang Nginx Proxy Manager:
+
+```env
+SECRET_KEY=<string-acak-panjang>
+DEBUG=False
+ALLOWED_HOSTS=nentis.krisna-ai.web.id,103.102.15.44,localhost,127.0.0.1
+DB_NAME=nentis
+DB_USER=sik
+DB_PASSWORD=<password-db-aman>
+DB_HOST=db
+DB_PORT=3306
+MYSQL_ROOT_PASSWORD=<password-root-aman>
+CSRF_TRUSTED_ORIGINS=https://nentis.krisna-ai.web.id
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+ADMIN_PASSWORD=<password-aman>
+ADMISI_PASSWORD=<password-aman>
+DOKTER_PASSWORD=<password-aman>
+```
 
 ## Menjalankan dengan Docker
 
-### Standalone (db + web + nginx)
+### Standalone (db + web + nginx) — untuk demo/lokal
 
 ```bash
 cd nentis
@@ -93,37 +112,38 @@ docker compose up -d --build
 
 Aplikasi tersedia di `http://localhost` (nginx port 80).
 
-### Untuk server yang sudah punya reverse proxy (tanpa nginx)
+### Server dengan Nginx Proxy Manager (produksi)
 
-Gunakan `docker-compose.server.yml` (db + web saja, web dipublish di port **8002**):
-
-```bash
-cd nentis
-docker compose -f docker-compose.server.yml up -d --build
-```
-
-Aplikasi tersedia di `http://localhost:8002`.
-
-### Jika Docker Hub diblokir (server production)
-
-Server dengan ISP yang memblokir registry Docker Hub perlu registry mirror.
-Jalankan sebagai root:
+`docker-compose.server.yml` menjalankan `db` + `web` (port 8002). Overlay
+`docker-compose.npm.yml` memasukkan `web` ke jaringan `proxy_default`
+sehingga NPM bisa forward ke `nentis_web:8002`:
 
 ```bash
-sudo bash deploy/setup-docker-mirror.sh
+docker compose -f docker-compose.server.yml -f docker-compose.npm.yml up -d --build
 ```
 
-Ini menambahkan `https://mirror.gcr.io` ke `/etc/docker/daemon.json` (merge, dengan
-backup), lalu me-restart Docker. Setelah itu jalankan kembali:
+Lalu di UI Nginx Proxy Manager buat **Proxy Host**:
+
+| Field                | Nilai                     |
+|----------------------|---------------------------|
+| Domain Names         | `nentis.krisna-ai.web.id` |
+| Scheme               | `http`                    |
+| Forward Hostname/IP  | `nentis_web`              |
+| Forward Port         | `8002`                    |
+| Block Exploits       | ON                        |
+| Websockets Support   | ON                        |
+| SSL                  | Let's Encrypt, Force SSL  |
+
+Aplikasi tersedia di `https://nentis.krisna-ai.web.id`.
+
+### Jika Docker Hub diblokir (production)
 
 ```bash
-docker compose -f docker-compose.server.yml up -d --build
+sudo bash deploy/setup-docker-mirror.sh   # pasang mirror.gcr.io
+docker compose -f docker-compose.server.yml -f docker-compose.npm.yml up -d --build
 ```
 
-### Deploy cepat
-
-Skrip `deploy/install.sh` menjalankan seluruh langkah di atas (cekan .env,
-`docker compose up -d --build`, lalu menampilkan status):
+Skrip `deploy/install.sh` menjalankan cekan `.env` + `docker compose up -d --build`:
 
 ```bash
 sudo bash deploy/install.sh
@@ -179,10 +199,21 @@ python manage.py runserver
 
 ## Akun Default
 
-Setelah menjalankan `seed_data`, akun default:
+Setelah menjalankan `seed_data`, akun default (kredensial berasal dari env, nilai default di `settings.py`):
 
 | Role     | Username | Password   |
 |----------|----------|------------|
 | Admin    | admin    | admin123   |
 | Admisi   | admisi   | admisi123  |
 | Dokter   | dokter   | dokter123  |
+
+## Troubleshooting
+
+| Gejala | Penyebab | Perbaikan |
+|--------|----------|-----------|
+| 502 Bad Gateway dari NPM | NPM diset forward ke `127.0.0.1:8002` (localhost di dalam container NPM) | Forward ke `nentis_web:8002`, gabungkan `web` ke `proxy_default` via `docker-compose.npm.yml` |
+| Login ditolak CSRF / pakai form HTTPS | `CSRF_TRUSTED_ORIGINS` / cookie secure belum diset | Tambahkan `CSRF_TRUSTED_ORIGINS`, `SESSION_COOKIE_SECURE=True`, `CSRF_COOKIE_SECURE=True` |
+| DisallowedHost | `ALLOWED_HOSTS` tidak memuat domain | Isi `ALLOWED_HOSTS` dengan hostname yang diakses |
+| `i/o timeout` saat build | Docker Hub diblokir | `sudo bash deploy/setup-docker-mirror.sh` |
+| `Can't connect to MySQL` | `DB_HOST` salah | Pastikan `DB_HOST=db` (compose), `localhost` (langsung) |
+| Suara tidak kedengaran | Browser memblokir Web Speech API di HTTP | Akses via HTTPS (secure context) |

@@ -1,0 +1,18 @@
+# Overlay khusus server yang memakai Nginx Proxy Manager.
+# Dipakai bersama file utama:
+#   docker compose -f docker-compose.server.yml -f docker-compose.npm.yml up -d
+#
+# `web` sekarang masuk ke jaringan NPM (proxy_default) supaya NPM bisa
+# forward ke hostname `nentis_web:8002` tanpa masalah 502/127.0.0.1.
+# `db` sengaja tidak masuk ke jaringan NPM — database tidak perlu terekspos.
+
+services:
+  web:
+    networks:
+      - default
+      - npm
+
+networks:
+  npm:
+    external: true
+    name: proxy_default

@@ -51,8 +51,9 @@ nentis/
 ├── media/            # File upload (QR code, dll)
 ├── Dockerfile
 ├── docker-compose.yml          # db + web + nginx (standalone)
-├── docker-compose.server.yml   # db + web saja (untuk server dengan reverse proxy)
+├── docker-compose.server.yml   # db + web (untuk server dengan reverse proxy)
 ├── nginx.conf
+├── deploy/                     # setup mirror registry + deploy script
 ├── manage.py
 └── requirements.txt
 ```
@@ -102,6 +103,40 @@ docker compose -f docker-compose.server.yml up -d --build
 ```
 
 Aplikasi tersedia di `http://localhost:8002`.
+
+### Jika Docker Hub diblokir (server production)
+
+Server dengan ISP yang memblokir registry Docker Hub perlu registry mirror.
+Jalankan sebagai root:
+
+```bash
+sudo bash deploy/setup-docker-mirror.sh
+```
+
+Ini menambahkan `https://mirror.gcr.io` ke `/etc/docker/daemon.json` (merge, dengan
+backup), lalu me-restart Docker. Setelah itu jalankan kembali:
+
+```bash
+docker compose -f docker-compose.server.yml up -d --build
+```
+
+### Deploy cepat
+
+Skrip `deploy/install.sh` menjalankan seluruh langkah di atas (cekan .env,
+`docker compose up -d --build`, lalu menampilkan status):
+
+```bash
+sudo bash deploy/install.sh
+```
+
+`Dockerfile` menerima dua build-arg agar tidak perlu mengedit file saat
+deploy di mesin berbeda:
+
+```bash
+docker compose -f docker-compose.server.yml build \
+  --build-arg PYTHON_IMAGE=python:3.11-slim \
+  --build-arg PIP_INDEX_URL=https://pypi.org/simple
+```
 
 ## Menjalankan tanpa Docker
 

@@ -41,7 +41,7 @@
                             hx-indicator="#spinner"
                             data-nomor="{{ antrian.nomor_antrian }}"
                             data-nama="{{ antrian.pendaftaran.pasien.nama_lengkap }}"
-                            hx-on:htmx:after-request="playBellAndSpeak(this)"
+                            hx-on:htmx:afterRequest="playBellAndSpeak(this)"
                         >
                             <i class="bi bi-megaphone"></i> {% if antrian.status == 'DIPANGGIL' %}Panggil Ulang{% else %}Panggil{% endif %}
                         </button>
@@ -107,6 +107,7 @@
     let audioCtx = null;
     window.playBell = function() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         const now = audioCtx.currentTime;
         const frequencies = [880, 1100, 1320];
         frequencies.forEach((freq, i) => {

@@ -24,7 +24,7 @@
                 class="d-inline"
                 data-nomor="{{ antrian.nomor_antrian }}"
                 data-nama="{{ antrian.pendaftaran.pasien.nama_lengkap }}"
-                hx-on:htmx:after-request="playBellAndSpeak(this)"
+                hx-on:htmx:afterRequest="playBellAndSpeak(this)"
             >
                 {% csrf_token %}
                 <button type="submit" class="btn btn-success btn-sm">

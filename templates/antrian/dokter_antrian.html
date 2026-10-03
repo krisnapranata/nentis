@@ -171,6 +171,7 @@
 
     window.playBell = function() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         const now = audioCtx.currentTime;
         const frequencies = [880, 1100, 1320];
         frequencies.forEach((freq, i) => {

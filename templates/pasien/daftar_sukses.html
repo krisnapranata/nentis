@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5 text-center">
+        <div class="card">
+            <div class="card-header py-3 bg-success">
+                <h5 class="mb-0"><i class="bi bi-check-circle me-2"></i>Pendaftaran Berhasil</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if already_registered %}
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Anda sudah terdaftar hari ini.</strong><br>
+                    Tidak perlu mendaftar ulang. Berikut status pendaftaran Anda:
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h5>{{ pasien.nama_lengkap }}</h5>
+                <p class="text-muted">Pendaftaran berhasil, Anda langsung mendapat nomor antrean.</p>
+
+                {% if antrian %}
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Nomor Antrean Anda</p>
+                        <div class="antrian-nomor">{{ antrian.nomor_antrian }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Status: <strong>{{ pendaftaran.get_status_display }}</strong><br>
+                    Silakan menunggu panggilan dari petugas.
+                </div>
+
+                <a href="{% url 'daftar' %}" class="btn btn-outline-secondary btn-sm mt-2">Daftar Lagi</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

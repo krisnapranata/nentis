@@ -1,0 +1,340 @@
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="btn-group btn-group-sm" id="jenis-gigi-toggle">
+      <input type="radio" class="btn-check" name="jenis_gigi" id="jg-permanen" value="PERMANEN" autocomplete="off" checked>
+      <label class="btn btn-outline-primary" for="jg-permanen">Gigi Permanen</label>
+      <input type="radio" class="btn-check" name="jenis_gigi" id="jg-sulung" value="SULUNG" autocomplete="off">
+      <label class="btn btn-outline-primary" for="jg-sulung">Gigi Sulung</label>
+    </div>
+    <div>
+      <button class="btn btn-outline-danger btn-sm" id="btn-reset-odonto" title="Reset odontogram">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+      <button class="btn btn-primary btn-sm ms-1" id="btn-save-odonto">
+        <i class="bi bi-check-lg"></i> Simpan
+      </button>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-center mb-2">
+    <div id="odontogram-svg-container" class="border rounded bg-white p-2" style="max-width:100%;overflow-x:auto;">
+      <svg id="odontogram-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" style="width:100%;max-width:780px;height:auto;cursor:pointer;"></svg>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-1 justify-content-center small mt-2" id="legend-container"></div>
+
+  <div class="text-muted small text-center mt-2">
+    <i class="bi bi-info-circle"></i> Klik gigi untuk memilih kondisi
+  </div>
+
+<!-- MODAL PILIH KONDISI -->
+<div class="modal fade" id="kondisiModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title" id="kondisiModalLabel">Gigi <span id="modal-gigi-no"></span></h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <div id="kondisi-options"></div>
+        <div class="mt-3">
+          <label class="form-label small">Keterangan</label>
+          <textarea class="form-control form-control-sm" id="modal-keterangan" rows="2" placeholder="Catatan tambahan..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-outline-danger" id="btn-hapus-kondisi">Hapus</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-pilih-kondisi" data-bs-dismiss="modal">Pilih</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const WARNA = {
+    SEHAT: '#f8f9fa',
+    KARIES: '#dc3545',
+    TUMPATAN: '#0d6efd',
+    HILANG: '#212529',
+    MAHKOTA: '#ffc107',
+    RCT: '#fd7e14',
+    INDIKASI_CABUT: '#dc3545',
+    PROTESA: '#6f42c1',
+  };
+
+  const LABEL = {
+    SEHAT: 'Sehat',
+    KARIES: 'Karies',
+    TUMPATAN: 'Tumpatan',
+    HILANG: 'Hilang',
+    MAHKOTA: 'Mahkota/Bridge',
+    RCT: 'RCT',
+    INDIKASI_CABUT: 'Indikasi Cabut',
+    PROTESA: 'Protesa',
+  };
+
+  const ICON = {
+    SEHAT: 'bi-circle',
+    KARIES: 'bi-exclamation-triangle-fill',
+    TUMPATAN: 'bi-pentagon-fill',
+    HILANG: 'bi-x-lg',
+    MAHKOTA: 'bi-star-fill',
+    RCT: 'bi-triangle-fill',
+    INDIKASI_CABUT: 'bi-slash-circle-fill',
+    PROTESA: 'bi-square-fill',
+  };
+
+  const KONDISI_CHOICES = Object.keys(WARNA);
+
+  // Tooth positions for PERMANEN
+  const PERMANEN_TEETH = [
+    // Upper: 18..11 left-to-right, 21..28
+    {n:18, x:22,  y:100}, {n:17, x:62,  y:82}, {n:16, x:102, y:68}, {n:15, x:142, y:58},
+    {n:14, x:182, y:52}, {n:13, x:222, y:50}, {n:12, x:262, y:50}, {n:11, x:302, y:50},
+    {n:21, x:402, y:50}, {n:22, x:442, y:50}, {n:23, x:482, y:50}, {n:24, x:522, y:52},
+    {n:25, x:562, y:58}, {n:26, x:602, y:68}, {n:27, x:642, y:82}, {n:28, x:682, y:100},
+    // Lower: 48..41, 31..38
+    {n:48, x:22,  y:360}, {n:47, x:62,  y:378}, {n:46, x:102, y:392}, {n:45, x:142, y:402},
+    {n:44, x:182, y:408}, {n:43, x:222, y:410}, {n:42, x:262, y:410}, {n:41, x:302, y:410},
+    {n:31, x:402, y:410}, {n:32, x:442, y:410}, {n:33, x:482, y:410}, {n:34, x:522, y:408},
+    {n:35, x:562, y:402}, {n:36, x:602, y:392}, {n:37, x:642, y:378}, {n:38, x:682, y:360},
+  ];
+
+  // Tooth positions for SULUNG
+  const SULUNG_TEETH = [
+    {n:55, x:30,  y:100}, {n:54, x:78,  y:72}, {n:53, x:126, y:58}, {n:52, x:174, y:52}, {n:51, x:222, y:50},
+    {n:61, x:322, y:50}, {n:62, x:370, y:52}, {n:63, x:418, y:58}, {n:64, x:466, y:72}, {n:65, x:514, y:100},
+    {n:85, x:30,  y:360}, {n:84, x:78,  y:388}, {n:83, x:126, y:402}, {n:82, x:174, y:408}, {n:81, x:222, y:410},
+    {n:71, x:322, y:410}, {n:72, x:370, y:408}, {n:73, x:418, y:402}, {n:74, x:466, y:388}, {n:75, x:514, y:360},
+  ];
+
+  const TW = 36, TH = 52;
+  const STW = 44, STH = 48;
+  const ARCH_Y = 200;  // center arch label for upper
+  const ARCH_Y2 = 330; // center arch label for lower
+
+  let kondisiState = {};       // {nomor: kondisi}
+  let keteranganState = {};   // {nomor: keterangan}
+  let selectedGigi = null;
+  let currentJenis = 'PERMANEN';
+
+  const svg = document.getElementById('odontogram-svg');
+  const legendContainer = document.getElementById('legend-container');
+  const perlToggle = document.getElementById('jg-permanen');
+  const sulungToggle = document.getElementById('jg-sulung');
+
+  function getTeethConfig() {
+    return currentJenis === 'PERMANEN' ? PERMANEN_TEETH : SULUNG_TEETH;
+  }
+
+  function getToothSize() {
+    return currentJenis === 'PERMANEN' ? {w: TW, h: TH} : {w: STW, h: STH};
+  }
+
+  function toothPath(x, y, w, h) {
+    const rb = 6;
+    return `M${x+rb},${y} L${x+w-rb},${y} Q${x+w},${y} ${x+w},${y+rb} L${x+w},${y+h-rb} Q${x+w},${y+h} ${x+w-rb},${y+h} L${x+rb},${y+h} Q${x},${y+h} ${x},${y+h-rb} L${x},${y+rb} Q${x},${y} ${x+rb},${y} Z`;
+  }
+
+  function renderLegend() {
+    const used = new Set(Object.values(kondisiState));
+    let html = '';
+    KONDISI_CHOICES.forEach(function(k) {
+      const active = used.has(k);
+      html += '<span class="badge d-inline-flex align-items-center gap-1" style="background:' + WARNA[k] + '; color:' + (k==='SEHAT'||k==='MAHKOTA'?'#333':'#fff') + '; border:1px solid #dee2e6; opacity:' + (active ? '1' : '0.4') + '">';
+      html += '<i class="bi ' + ICON[k] + '"></i> ' + LABEL[k];
+      html += '</span>';
+    });
+    legendContainer.innerHTML = html;
+  }
+
+  function renderChart() {
+    const teeth = getTeethConfig();
+    const size = getToothSize();
+    const w = size.w, h = size.h;
+    const viewW = currentJenis === 'PERMANEN' ? 800 : 600;
+    svg.setAttribute('viewBox', '0 0 ' + viewW + ' 520');
+
+    let html = '';
+
+    // Midline
+    const midX = currentJenis === 'PERMANEN' ? 370 : 272;
+    html += '<line x1="'+midX+'" y1="140" x2="'+midX+'" y2="340" stroke="#dee2e6" stroke-width="1" stroke-dasharray="4,4"/>';
+
+    // Labels
+    html += '<text x="'+midX+'" y="165" text-anchor="middle" fill="#6c757d" font-size="12">Atas</text>';
+    html += '<text x="'+midX+'" y="355" text-anchor="middle" fill="#6c757d" font-size="12">Bawah</text>';
+
+    teeth.forEach(function(t) {
+      const kondisi = kondisiState[t.n] || 'SEHAT';
+      const fillColor = WARNA[kondisi] || WARNA.SEHAT;
+      const isUpper = parseInt(t.n) < 50 ? (t.n < 30) : (t.n < 65);
+      const strokeColor = '#adb5bd';
+      
+      html += '<path d="' + toothPath(t.x, t.y, w, h) + '" ';
+      html += 'fill="' + fillColor + '" stroke="' + strokeColor + '" stroke-width="1" ';
+      html += 'class="odonto-tooth" data-gigi="' + t.n + '" data-kondisi="' + kondisi + '" ';
+      html += 'style="transition:fill 0.2s"/>';
+
+      // Cross mark for HILANG and INDIKASI_CABUT
+      if (kondisi === 'HILANG' || kondisi === 'INDIKASI_CABUT') {
+        html += '<line x1="' + (t.x+4) + '" y1="' + (t.y+4) + '" x2="' + (t.x+w-4) + '" y2="' + (t.y+h-4) + '" stroke="#fff" stroke-width="2"/>';
+        html += '<line x1="' + (t.x+w-4) + '" y1="' + (t.y+4) + '" x2="' + (t.x+4) + '" y2="' + (t.y+h-4) + '" stroke="#fff" stroke-width="2"/>';
+      }
+
+      // Tooth number
+      const textColor = (kondisi === 'SEHAT' || kondisi === 'MAHKOTA') ? '#495057' : '#fff';
+      html += '<text x="' + (t.x + w/2) + '" y="' + (t.y + h/2 + 1) + '" text-anchor="middle" ';
+      html += 'dominant-baseline="central" font-size="' + (currentJenis==='PERMANEN'?'11':'12') + '" ';
+      html += 'font-weight="600" fill="' + textColor + '" ';
+      html += 'class="odonto-tooth" data-gigi="' + t.n + '" style="pointer-events:none">' + t.n + '</text>';
+    });
+
+    svg.innerHTML = html;
+
+    // Click handlers
+    svg.querySelectorAll('.odonto-tooth').forEach(function(el) {
+      if (el.tagName === 'text') return;
+      el.addEventListener('click', function(e) {
+        const n = parseInt(this.dataset.gigi);
+        openModal(n);
+      });
+    });
+
+    renderLegend();
+  }
+
+  function openModal(nomor) {
+    selectedGigi = nomor;
+    document.getElementById('modal-gigi-no').textContent = nomor;
+
+    const current = kondisiState[nomor] || 'SEHAT';
+    let optsHtml = '';
+    KONDISI_CHOICES.forEach(function(k) {
+      const checked = k === current ? ' checked' : '';
+      optsHtml += '<div class="form-check mb-1">';
+      optsHtml += '<input class="form-check-input" type="radio" name="kondisi_opt" id="kond-'+k+'" value="'+k+'"'+checked+'>';
+      optsHtml += '<label class="form-check-label small" for="kond-'+k+'">';
+      optsHtml += '<span class="d-inline-block me-1" style="width:14px;height:14px;border-radius:3px;background:'+WARNA[k]+';border:1px solid #adb5bd;vertical-align:middle"></span>';
+      optsHtml += LABEL[k];
+      optsHtml += '</label></div>';
+    });
+    document.getElementById('kondisi-options').innerHTML = optsHtml;
+    document.getElementById('modal-keterangan').value = keteranganState[nomor] || '';
+
+    const modal = new bootstrap.Modal(document.getElementById('kondisiModal'));
+    modal.show();
+  }
+
+  document.getElementById('btn-pilih-kondisi').addEventListener('click', function() {
+    if (selectedGigi === null) return;
+    const checked = document.querySelector('input[name="kondisi_opt"]:checked');
+    if (!checked) return;
+    kondisiState[selectedGigi] = checked.value;
+    keteranganState[selectedGigi] = document.getElementById('modal-keterangan').value;
+    renderChart();
+  });
+
+  document.getElementById('btn-hapus-kondisi').addEventListener('click', function() {
+    if (selectedGigi === null) return;
+    kondisiState[selectedGigi] = 'SEHAT';
+    keteranganState[selectedGigi] = '';
+    document.getElementById('modal-keterangan').value = '';
+    document.getElementById('kond-SEHAT').checked = true;
+    renderChart();
+  });
+
+  document.getElementById('btn-reset-odonto').addEventListener('click', function() {
+    if (!confirm('Reset semua kondisi gigi ke Sehat?')) return;
+    kondisiState = {};
+    keteranganState = {};
+    renderChart();
+  });
+
+  document.getElementById('btn-save-odonto').addEventListener('click', function() {
+    const pendaftaranId = document.getElementById('odontogram-content').dataset.pendaftaranId;
+    const data = {
+      jenis_gigi: currentJenis,
+      gigi: []
+    };
+    Object.keys(kondisiState).forEach(function(n) {
+      if (kondisiState[n] !== 'SEHAT') {
+        data.gigi.push({
+          nomor: n,
+          kondisi: kondisiState[n],
+          keterangan: keteranganState[n] || ''
+        });
+      }
+    });
+    // Also save SEHAT entries with keterangan
+    Object.keys(keteranganState).forEach(function(n) {
+      if (keteranganState[n] && (!kondisiState[n] || kondisiState[n] === 'SEHAT')) {
+        if (!data.gigi.find(function(g) { return g.nomor === n; })) {
+          data.gigi.push({nomor: n, kondisi: 'SEHAT', keterangan: keteranganState[n]});
+        }
+      }
+    });
+
+    fetch('/dokter/odontogram/' + pendaftaranId + '/save/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+      },
+      body: JSON.stringify(data)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+      if (resp.success) {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-success ms-2';
+        badge.textContent = 'Tersimpan';
+        document.getElementById('btn-save-odonto').appendChild(badge);
+        setTimeout(function() { badge.remove(); }, 2000);
+      } else {
+        alert('Gagal menyimpan: ' + (resp.message || 'Unknown error'));
+      }
+    })
+    .catch(function(e) {
+      alert('Error: ' + e.message);
+    });
+  });
+
+  // Toggle jenis gigi
+  perlToggle.addEventListener('change', function() {
+    if (this.checked) { currentJenis = 'PERMANEN'; renderChart(); }
+  });
+  sulungToggle.addEventListener('change', function() {
+    if (this.checked) { currentJenis = 'SULUNG'; renderChart(); }
+  });
+
+  // Load existing data
+  function loadData() {
+    const pendaftaranId = document.getElementById('odontogram-content').dataset.pendaftaranId;
+    fetch('/dokter/odontogram/' + pendaftaranId + '/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      kondisiState = data.kondisi || {};
+      currentJenis = data.jenis_gigi || 'PERMANEN';
+      if (currentJenis === 'PERMANEN') {
+        perlToggle.checked = true;
+      } else {
+        sulungToggle.checked = true;
+      }
+      renderChart();
+    })
+    .catch(function() { renderChart(); });
+  }
+
+  loadData();
+
+  // Redraw when odonto tab becomes visible
+  var odontoTabBtn = document.getElementById('odonto-tab');
+  if (odontoTabBtn) {
+    odontoTabBtn.addEventListener('shown.bs.tab', function() {
+      setTimeout(function() { renderChart(); }, 50);
+    });
+  }
+})();
+</script>

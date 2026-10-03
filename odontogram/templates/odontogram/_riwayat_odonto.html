@@ -1,0 +1,24 @@
+{% load odontogram_tags %}
+
+{% if pendaftaran.odontogram %}
+{% with odn=pendaftaran.odontogram kondisi_map=pendaftaran.odontogram|kondisi_map %}
+{% if kondisi_map %}
+<div class="mt-2 ps-3 small">
+  <span class="fw-bold">Odontogram:</span>
+  <span class="badge bg-light text-dark me-1">{{ odn.get_jenis_gigi_display }}</span>
+
+  {% with ringkasan=pendaftaran.odontogram|ringkasan_kondisi %}
+  {% for item in ringkasan %}
+  <span class="badge me-1" style="background:{{ item.warna }};color:{% if item.kondisi == 'SEHAT' or item.kondisi == 'MAHKOTA' %}#333{% else %}#fff{% endif %}">{{ item.label }}: {{ item.jumlah }}</span>
+  {% endfor %}
+  {% endwith %}
+
+  <div class="mt-1">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 100" style="width:100%;max-width:360px;height:auto;">
+      {% mini_tooth_svg pendaftaran.odontogram %}
+    </svg>
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endif %}

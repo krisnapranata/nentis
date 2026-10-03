@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Buat Kunjungan{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-header py-3">
+                <h5 class="mb-0"><i class="bi bi-calendar-plus me-2"></i>Buat Kunjungan</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="mb-3">
+                    <strong>Pasien:</strong> {{ pasien.nama_lengkap }}<br>
+                    <strong>No. HP:</strong> {{ pasien.no_hp }}<br>
+                    {% if pasien.no_ktp %}<strong>No. KTP:</strong> {{ pasien.no_ktp }}{% endif %}
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle me-1"></i> Buat Kunjungan & Check-in
+                    </button>
+                </form>
+                <a href="{% url 'admisi_pasien' %}" class="btn btn-outline-secondary w-100 mt-2">
+                    Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

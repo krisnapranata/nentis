@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Cari Pasien{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-people me-2"></i>Cari / Daftar Pasien</h4>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="d-flex gap-2">
+                    {{ form.query }}
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cari</button>
+                    <a href="{% url 'admisi_pasien' %}" class="btn btn-outline-secondary">Reset</a>
+                </form>
+            </div>
+        </div>
+
+        {% if page_obj %}
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-2"></i>Daftar Pasien</span>
+                <span class="badge bg-light text-dark">{{ page_obj.paginator.count }} pasien</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Nama</th>
+                                <th>No. HP</th>
+                                <th>No. KTP</th>
+                                <th>Alamat</th>
+                                <th class="text-end pe-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in page_obj %}
+                            <tr>
+                                <td class="ps-3"><strong>{{ p.nama_lengkap }}</strong></td>
+                                <td>{{ p.no_hp }}</td>
+                                <td>{{ p.no_ktp|default:"-" }}</td>
+                                <td><small>{{ p.alamat|default:"-"|truncatechars:30 }}</small></td>
+                                <td class="text-end pe-3">
+                                    <a href="{% url 'admisi_buat_kunjungan' p.id %}" class="btn btn-primary btn-sm">
+                                        Buat Kunjungan
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if page_obj.paginator.num_pages > 1 %}
+            <div class="card-body py-3 border-top">
+                <nav aria-label="Halaman">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?query={{ request.GET.query|urlencode }}&page={{ page_obj.previous_page_number }}">&laquo;</a>
+                        </li>
+                        {% endif %}
+                        {% for num in page_obj.paginator.page_range %}
+                        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                            <a class="page-link" href="?query={{ request.GET.query|urlencode }}&page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?query={{ request.GET.query|urlencode }}&page={{ page_obj.next_page_number }}">&raquo;</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+        </div>
+        {% elif show_form %}
+        <div class="card">
+            <div class="card-header"><i class="bi bi-person-plus me-2"></i>Pasien Tidak Ditemukan — Daftar Baru</div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Isi kelengkapan data pasien di bawah ini.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
+                            {{ pasien_form.nama_lengkap }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">No. HP <span class="text-danger">*</span></label>
+                            {{ pasien_form.no_hp }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">No. KTP/NIK</label>
+                            {{ pasien_form.no_ktp }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Alamat</label>
+                            {{ pasien_form.alamat }}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">
+                        <i class="bi bi-save me-1"></i> Simpan &amp; Lanjut
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-4 text-muted">
+                <i class="bi bi-inbox" style="font-size: 2.5rem;"></i>
+                <p class="mt-2 mb-0">Belum ada pasien terdaftar.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

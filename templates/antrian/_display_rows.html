@@ -1,0 +1,27 @@
+{% if dipanggil_list %}
+{% for d in dipanggil_list %}
+<div class="panggil-section">
+    <div class="panggil-nomor">{{ d.nomor_antrian }}</div>
+    <div class="panggil-nama">{{ d.pendaftaran.pasien.nama_lengkap }}</div>
+    <div style="font-size: 1rem; opacity: 0.7; margin-top: 10px;">SILAKAN MENUJU RUANG PEMERIKSAAN</div>
+</div>
+{% endfor %}
+{% else %}
+<div class="panggil-section" style="background: rgba(255,255,255,0.05); box-shadow: none; animation: none;">
+    <div style="font-size: 1.5rem; opacity: 0.6;">MENUNGGU PANGGILAN</div>
+</div>
+{% endif %}
+
+<div class="queue-section" id="queue-cards">
+    {% for antrian in antrian_list %}
+    <div class="queue-card status-{{ antrian.status|lower }}" data-antrian-id="{{ antrian.id }}">
+        <div class="queue-number">{{ antrian.nomor_antrian }}</div>
+        <div class="queue-name">{{ antrian.pendaftaran.pasien.nama_lengkap }}</div>
+        <div class="queue-status">{{ antrian.get_status_display }}</div>
+    </div>
+    {% empty %}
+    <div class="empty-state" style="width:100%;">
+        <p>Belum ada antrian hari ini.</p>
+    </div>
+    {% endfor %}
+</div>

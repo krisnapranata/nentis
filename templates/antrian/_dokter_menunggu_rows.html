@@ -1,0 +1,46 @@
+{% for antrian in menunggu_list %}
+<tr>
+    <td class="fw-bold">{{ antrian.nomor_antrian }}</td>
+    <td>{{ antrian.pendaftaran.pasien.nama_lengkap }}</td>
+    <td>
+        {% if antrian.status == 'MENUNGGU' %}
+            <span class="badge bg-warning text-dark">Menunggu</span>
+        {% elif antrian.status == 'DIPANGGIL' %}
+            <span class="badge bg-success">Dipanggil</span>
+        {% endif %}
+    </td>
+    <td>
+        <a href="{% url 'dokter_riwayat' antrian.pendaftaran.pasien.id %}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-clock-history"></i> Riwayat
+        </a>
+    </td>
+    <td>
+        <div class="d-flex gap-1">
+            <form
+                hx-post="{% url 'dokter_panggil_antrian' antrian.id %}"
+                hx-target="#menunggu-tbody"
+                hx-swap="innerHTML"
+                class="d-inline"
+                data-nomor="{{ antrian.nomor_antrian }}"
+                data-nama="{{ antrian.pendaftaran.pasien.nama_lengkap }}"
+                hx-on:htmx:after-request="playBellAndSpeak(this)"
+            >
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class="bi bi-megaphone"></i> {% if antrian.status == 'DIPANGGIL' %}Panggil Ulang{% else %}Panggil{% endif %}
+                </button>
+            </form>
+            <a href="{% url 'dokter_periksa' antrian.pendaftaran.id %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-stethoscope"></i> Periksa
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="text-center text-muted py-4">
+        Tidak ada pasien menunggu.
+    </td>
+</tr>
+{% endfor %}

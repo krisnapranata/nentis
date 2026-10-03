@@ -1,0 +1,8 @@
+Keadaan Khusus :
+1. Hamil > tr1 sampai 3
+2. hypertensi > keterangan ex : td, obat rutin
+3. Riwayat jantung : ada/tidak jika ada masukkan nama dokter jantung konsultan
+4. alergi obat : ada/tidak jika ada tulis nama obat
+5. jika datang selanjutnya dengan keadaan khusus yang berbeda buat form untuk kolom keterangan
+6. resep buat statik dengan data master
+7. saat klik odontogram nomor gigi muncul dropdown

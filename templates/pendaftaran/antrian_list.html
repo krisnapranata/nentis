@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Antrian Hari Ini{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-list-ol me-2"></i>Antrian Hari Ini</h4>
+    <div id="spinner" class="htmx-indicator">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <span class="ms-1 small text-muted">Memperbarui...</span>
+    </div>
+</div>
+
+<div id="antrian-table"
+     hx-get="{% url 'admisi_antrian' %}"
+     hx-trigger="every 15s"
+     hx-swap="innerHTML"
+     hx-indicator="#spinner">
+    {% include "pendaftaran/_antrian_rows.html" %}
+</div>
+{% endblock %}

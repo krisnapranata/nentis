@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Antrian Dokter{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-list-ol me-2"></i>Daftar Pasien Hari Ini</h4>
+
+<ul class="nav nav-tabs mb-4" id="dokterTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#menunggu" type="button" role="tab">
+            <i class="bi bi-hourglass-split me-1"></i> Menunggu
+            <span class="badge bg-warning text-dark ms-1">{{ menunggu_list|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#diperiksa" type="button" role="tab">
+            <i class="bi bi-stethoscope me-1"></i> Sedang Diperiksa
+            <span class="badge bg-info ms-1">{{ diperiksa_list|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#selesai" type="button" role="tab">
+            <i class="bi bi-check-circle me-1"></i> Selesai
+            <span class="badge bg-secondary ms-1">{{ selesai_list|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- TAB: MENUNGGU + DIPANGGIL -->
+    <div class="tab-pane fade show active" id="menunggu" role="tabpanel">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Antrean</th>
+                            <th>Pasien</th>
+                            <th>Status</th>
+                            <th>Riwayat</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menunggu-tbody">
+                        {% include "antrian/_dokter_menunggu_rows.html" %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SEDANG DIPERIKSA -->
+    <div class="tab-pane fade" id="diperiksa" role="tabpanel">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Antrean</th>
+                            <th>Pasien</th>
+                            <th>Pemeriksaan</th>
+                            <th>Resep</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for antrian in diperiksa_list %}
+                        <tr>
+                            <td class="fw-bold">{{ antrian.nomor_antrian }}</td>
+                            <td>{{ antrian.pendaftaran.pasien.nama_lengkap }}</td>
+                            <td>
+                                {% with cppt=antrian.pendaftaran.cppt.first %}
+                                {% if cppt %}
+                                    <span class="text-success small"><i class="bi bi-check-circle"></i> {{ cppt.assessment|truncatechars:30 }}</span>
+                                {% else %}
+                                    <span class="text-warning small"><i class="bi bi-exclamation-circle"></i> Belum diisi</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with resep=antrian.pendaftaran.resep %}
+                                {% if resep and resep.detail.exists %}
+                                    <span class="text-success small"><i class="bi bi-check-circle"></i> {{ resep.detail.count }} obat</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dokter_periksa' antrian.pendaftaran.id %}" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-pencil-square"></i> Lanjutkan
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                Tidak ada pasien yang sedang diperiksa.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SELESAI -->
+    <div class="tab-pane fade" id="selesai" role="tabpanel">
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Antrean</th>
+                            <th>Pasien</th>
+                            <th>Diagnosis</th>
+                            <th>Resep</th>
+                            <th>Riwayat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for antrian in selesai_list %}
+                        <tr>
+                            <td class="fw-bold">{{ antrian.nomor_antrian }}</td>
+                            <td>{{ antrian.pendaftaran.pasien.nama_lengkap }}</td>
+                            <td>
+                                {% with cppt=antrian.pendaftaran.cppt.first %}
+                                {% if cppt %}
+                                    <small>{{ cppt.assessment|truncatechars:40 }}</small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with resep=antrian.pendaftaran.resep %}
+                                {% if resep and resep.detail.exists %}
+                                    <span class="badge bg-light text-dark">{{ resep.detail.count }} obat</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dokter_riwayat' antrian.pendaftaran.pasien.id %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-clock-history"></i> Riwayat
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                Belum ada pasien selesai hari ini.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    let audioCtx = null;
+
+    window.playBell = function() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        const frequencies = [880, 1100, 1320];
+        frequencies.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, now + i * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.15);
+            osc.stop(now + i * 0.15 + 0.3);
+        });
+    };
+
+    window.speak = function(nomor, nama) {
+        if (!('speechSynthesis' in window)) return;
+        const text = 'Nomor antrian ' + nomor + ', atas nama ' + nama + ', silakan menuju ruang pemeriksaan.';
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'id-ID';
+        utter.rate = 0.95;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utter);
+    };
+
+    window.playBellAndSpeak = function(btn) {
+        window.playBell();
+        window.speak(btn.getAttribute('data-nomor'), btn.getAttribute('data-nama'));
+    };
+})();
+</script>
+{% endblock %}

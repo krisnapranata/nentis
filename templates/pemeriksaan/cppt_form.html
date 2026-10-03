@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Pemeriksaan - {{ pendaftaran.pasien.nama_lengkap }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clipboard2-pulse me-2"></i>Pemeriksaan</span>
+                <small>{{ pendaftaran.pasien.nama_lengkap }}</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Keluhan Pasien</label>
+                        {{ form.subjective }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Hasil Pemeriksaan</label>
+                        {{ form.objective }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Diagnosis <span class="text-danger">*</span></label>
+                        {{ form.assessment }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tindakan <span class="text-danger">*</span></label>
+                        {{ form.plan }}
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Simpan Pemeriksaan
+                        </button>
+                        <a href="{% url 'dokter_periksa' pendaftaran.id %}" class="btn btn-outline-secondary">
+                            Kembali
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

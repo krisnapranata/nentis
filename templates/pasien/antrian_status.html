@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Status Antrean{% endblock %}
+
+{% block extra_head %}
+<meta http-equiv="refresh" content="30">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5 text-center">
+        <div class="card">
+            <div class="card-header py-3">
+                <h5 class="mb-0"><i class="bi bi-hourglass-split me-2"></i>Status Antrean</h5>
+            </div>
+            <div class="card-body p-4">
+                <h6>{{ pendaftaran.pasien.nama_lengkap }}</h6>
+
+                {% if antrian %}
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <p class="text-muted mb-1">Nomor Antrean Anda</p>
+                        <div class="antrian-nomor">{{ antrian.nomor_antrian }}</div>
+                    </div>
+                </div>
+                <div class="alert alert-{% if antrian.status == 'MENUNGGU' %}warning{% elif antrian.status == 'DIPANGGIL' %}success{% elif antrian.status == 'DIPERIKSA' %}info{% else %}secondary{% endif %}">
+                    Status: <strong>{{ antrian.get_status_display }}</strong>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    Status: <strong>{{ pendaftaran.get_status_display }}</strong><br>
+                    Belum mendapat nomor antrean. Silakan check-in terlebih dahulu.
+                </div>
+                {% endif %}
+
+                <a href="{% url 'daftar' %}" class="btn btn-outline-primary btn-sm mt-2">Daftar Baru</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

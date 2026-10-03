@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Resep Obat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .obat-search-wrap { position: relative; }
+    .obat-suggestions {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        max-height: 220px;
+        overflow-y: auto;
+        display: none;
+        border-radius: 0 0 10px 10px;
+    }
+    .obat-suggestions.show { display: block; }
+    .obat-suggestion { cursor: pointer; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-prescription2 me-2"></i>Resep Obat</span>
+                <small>{{ pendaftaran.pasien.nama_lengkap }}</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ formset.management_form }}
+
+                    <div id="resep-formset">
+                        {% for form in formset %}
+                        <div class="card bg-light mb-3 resep-form">
+                            <div class="card-body">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Obat</label>
+                                        <div class="obat-search-wrap">
+                                            <input type="text" class="form-control obat-search" placeholder="Ketik minimal 3 huruf..." autocomplete="off">
+                                            <div class="obat-suggestions list-group"></div>
+                                        </div>
+                                        <div class="d-none">{{ form.obat }}</div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Aturan Pakai</label>
+                                        {{ form.aturan_pakai }}
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Jumlah</label>
+                                        {{ form.jumlah }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Keterangan</label>
+                                        {{ form.keterangan }}
+                                    </div>
+                                </div>
+                                {% if form.instance.pk %}
+                                <div class="form-check mt-2">
+                                    {{ form.DELETE }}
+                                    <label class="form-check-label small">Hapus obat ini</label>
+                                </div>
+                                {% endif %}
+                                {{ form.id }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <button type="button" id="add-resep" class="btn btn-outline-primary mb-3">
+                        <i class="bi bi-plus-circle"></i> Tambah Obat
+                    </button>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Simpan Resep
+                        </button>
+                        <a href="{% url 'dokter_periksa' pendaftaran.id %}" class="btn btn-outline-secondary">
+                            Kembali
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function rowSelect(input) {
+    return input.closest('.resep-form').querySelector('select[name$="-obat"]');
+}
+
+function rowSuggestions(input) {
+    return input.closest('.resep-form').querySelector('.obat-suggestions');
+}
+
+function closeAllSuggestions() {
+    document.querySelectorAll('.obat-suggestions').forEach(function(box) {
+        box.innerHTML = '';
+        box.classList.remove('show');
+    });
+}
+
+function renderSuggestions(input, results) {
+    const box = rowSuggestions(input);
+    box.innerHTML = '';
+    if (!results.length) {
+        box.innerHTML = '<div class="list-group-item small text-muted">Tidak ditemukan</div>';
+        box.classList.add('show');
+        return;
+    }
+    results.forEach(function(r) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action obat-suggestion';
+        item.textContent = r.nama;
+        item.addEventListener('click', function() {
+            const sel = rowSelect(input);
+            if (sel) sel.value = String(r.id);
+            input.value = r.nama;
+            box.innerHTML = '';
+            box.classList.remove('show');
+        });
+        box.appendChild(item);
+    });
+    box.classList.add('show');
+}
+
+document.addEventListener('input', function(e) {
+    if (!e.target.classList.contains('obat-search')) return;
+    const input = e.target;
+    const q = input.value.trim();
+    if (q.length < 3) {
+        rowSuggestions(input).innerHTML = '';
+        rowSuggestions(input).classList.remove('show');
+        return;
+    }
+    fetch("{% url 'dokter_cari_obat' %}?q=" + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderSuggestions(input, data.results || []); });
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.obat-search') && !e.target.closest('.obat-suggestions')) {
+        closeAllSuggestions();
+    }
+});
+
+document.querySelectorAll('.obat-search').forEach(function(input) {
+    const sel = rowSelect(input);
+    if (sel && sel.selectedIndex > 0) {
+        input.value = sel.options[sel.selectedIndex].text;
+    }
+});
+
+document.getElementById('add-resep').addEventListener('click', function() {
+    const container = document.getElementById('resep-formset');
+    const totalFormsInput = document.querySelector('input[name$="TOTAL_FORMS"]');
+    const newIdx = parseInt(totalFormsInput.value, 10);
+
+    const lastForm = container.querySelector('.resep-form:last-child');
+    const newForm = lastForm.cloneNode(true);
+
+    const probe = newForm.querySelector('[name]');
+    let currentIdx = '0';
+    if (probe) {
+        const m = probe.getAttribute('name').match(/-(\d+)-/);
+        if (m) currentIdx = m[1];
+    }
+
+    const reindex = function(attr) {
+        newForm.querySelectorAll('[' + attr + ']').forEach(function(node) {
+            const val = node.getAttribute(attr);
+            if (val) {
+                node.setAttribute(attr, val.replace(new RegExp('-' + currentIdx + '-'), '-' + newIdx + '-'));
+            }
+        });
+    };
+    reindex('name');
+    reindex('id');
+    reindex('for');
+
+    newForm.querySelectorAll('input, textarea').forEach(function(input) {
+        if (input.type === 'checkbox') {
+            input.checked = false;
+        } else if (input.type !== 'hidden') {
+            input.value = '';
+        }
+    });
+    newForm.querySelectorAll('input[type="hidden"]').forEach(function(input) {
+        if (input.name && /-id$/.test(input.name)) {
+            input.value = '';
+        }
+    });
+    newForm.querySelectorAll('select').forEach(function(select) {
+        select.selectedIndex = 0;
+    });
+    newForm.querySelectorAll('.obat-suggestions').forEach(function(box) {
+        box.innerHTML = '';
+        box.classList.remove('show');
+    });
+
+    container.appendChild(newForm);
+    totalFormsInput.value = newIdx + 1;
+});
+</script>
+{% endblock %}

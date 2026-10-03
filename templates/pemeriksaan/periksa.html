@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Pemeriksaan Pasien{% endblock %}
+
+{% block extra_head %}
+<style>
+    .section-card { margin-bottom: 20px; }
+    .riwayat-item { border-left: 3px solid #dee2e6; transition: border-color 0.2s; }
+    .riwayat-item:hover { border-left-color: var(--primary); }
+    .cppt-field { margin-bottom: 4px; }
+    .cppt-label { font-weight: 600; font-size: 0.8rem; color: var(--primary); }
+    .section-icon { width: 28px; text-align: center; }
+    .pemeriksaan-form .form-label { font-weight: 600; font-size: 0.85rem; }
+    .kondisi-badge { font-size: 0.8rem; }
+    .kondisi-khusus .form-check { margin-bottom: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if pendaftaran_aktif and pendaftaran_aktif.id != pendaftaran.id %}
+<div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+    <span><i class="bi bi-info-circle me-2"></i>Anda sedang melihat riwayat kunjungan.</span>
+    <a href="{% url 'dokter_periksa' pendaftaran_aktif.id %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Kembali ke Pemeriksaan
+    </a>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-stethoscope me-2"></i>Pemeriksaan</span>
+            <div>
+                {% if antrian %}
+                    <span class="badge bg-light text-dark me-2">{{ antrian.nomor_antrian }}</span>
+                {% endif %}
+                <span class="badge bg-info">{{ pendaftaran.get_status_display }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <strong class="fs-5">{{ pasien.nama_lengkap }}</strong><br>
+                <small class="text-muted">{{ pasien.alamat|default:"-" }}</small><br>
+                <small class="text-muted">HP: {{ pasien.no_hp }}{% if pasien.no_ktp %} &middot; KTP: {{ pasien.no_ktp }}{% endif %}</small>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <small class="text-muted">Kode: <strong>{{ pendaftaran.kode_pendaftaran }}</strong></small><br>
+                <small class="text-muted">Tanggal: {{ pendaftaran.tanggal_kunjungan|date:"d-m-Y" }}</small><br>
+                <small class="text-muted">Kunjungan ke-{{ riwayat_kunjungan.count|add:1 }}</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with form_data=keadaan_khusus|default:keadaan_khusus_terakhir %}
+<div class="card section-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-exclamation-triangle me-2"></i>Keadaan Khusus</span>
+        <div>
+            {% if keadaan_khusus %}
+            <span class="badge bg-warning text-dark">Sudah diisi</span>
+            {% elif keadaan_khusus_terakhir %}
+            <span class="text-muted small me-2">Diisi terakhir: {{ keadaan_khusus_terakhir_tanggal|date:"d-m-Y" }}</span>
+            <span class="badge bg-info">Terisi dari riwayat</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body kondisi-khusus">
+        {% if not keadaan_khusus and keadaan_khusus_terakhir %}
+        <div class="alert alert-info py-2 small mb-3 d-flex align-items-center">
+            <i class="bi bi-info-circle me-2"></i>
+            Data di bawah diambil dari kunjungan terakhir ({{ keadaan_khusus_terakhir_tanggal|date:"d-m-Y" }}). Silakan periksa dan ubah bila ada perubahan, lalu simpan.
+        </div>
+        {% endif %}
+        <form method="post" action="{% url 'dokter_keadaan_khusus' pendaftaran.id %}">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Kehamilan</label>
+                    <select name="hamil" class="form-select form-select-sm">
+                        <option value="">Tidak / Tidak berlaku</option>
+                        <option value="TR1" {% if form_data.hamil == 'TR1' %}selected{% endif %}>Trimester 1</option>
+                        <option value="TR2" {% if form_data.hamil == 'TR2' %}selected{% endif %}>Trimester 2</option>
+                        <option value="TR3" {% if form_data.hamil == 'TR3' %}selected{% endif %}>Trimester 3</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Hipertensi</label>
+                    <div class="input-group input-group-sm">
+                        <select name="hipertensi" class="form-select" style="max-width:120px">
+                            <option value="0" {% if not form_data.hipertensi %}selected{% endif %}>Tidak</option>
+                            <option value="1" {% if form_data.hipertensi %}selected{% endif %}>Ya</option>
+                        </select>
+                        <input type="text" name="hipertensi_keterangan" class="form-control form-control-sm" placeholder="TD, obat rutin..." value="{{ form_data.hipertensi_keterangan|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Riwayat Jantung</label>
+                    <div class="input-group input-group-sm">
+                        <select name="riwayat_jantung" class="form-select" style="max-width:120px">
+                            <option value="0" {% if not form_data.riwayat_jantung %}selected{% endif %}>Tidak</option>
+                            <option value="1" {% if form_data.riwayat_jantung %}selected{% endif %}>Ya</option>
+                        </select>
+                        <input type="text" name="riwayat_jantung_nama_dokter" class="form-control form-control-sm" placeholder="Nama dokter jantung konsultan..." value="{{ form_data.riwayat_jantung_nama_dokter|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-bold small">Alergi Obat</label>
+                    <div class="input-group input-group-sm">
+                        <select name="alergi_obat" class="form-select" style="max-width:120px">
+                            <option value="0" {% if not form_data.alergi_obat %}selected{% endif %}>Tidak</option>
+                            <option value="1" {% if form_data.alergi_obat %}selected{% endif %}>Ya</option>
+                        </select>
+                        <input type="text" name="alergi_obat_nama" class="form-control form-control-sm" placeholder="Nama obat alergi..." value="{{ form_data.alergi_obat_nama|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label fw-bold small">Keterangan Tambahan</label>
+                    <textarea name="keterangan" class="form-control form-control-sm" rows="2" placeholder="Kondisi khusus lainnya...">{{ form_data.keterangan|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm mt-3">
+                <i class="bi bi-save me-1"></i> Simpan Keadaan Khusus
+            </button>
+        </form>
+    </div>
+</div>
+{% endwith %}
+
+<div class="card section-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Riwayat Terakhir</span>
+        <a href="{% url 'dokter_riwayat' pasien.id %}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-arrows-fullscreen me-1"></i>Buka Halaman Penuh
+        </a>
+    </div>
+    <div class="card-body">
+        {% if keadaan_khusus %}
+        <div class="riwayat-item ps-3 mb-3 pb-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>{{ pendaftaran.tanggal_kunjungan|date:"d-m-Y" }}</strong>
+                    <small class="text-muted ms-2">{{ pendaftaran.kode_pendaftaran }}</small>
+                    <span class="badge bg-primary ms-2 small">Kunjungan Ini</span>
+                </div>
+                <span class="badge bg-info small">{{ pendaftaran.get_status_display }}</span>
+            </div>
+            <div class="small ps-3 mt-2 border-start border-2 border-warning">
+                <span class="fw-bold text-warning">Keadaan Khusus:</span>
+                {% if keadaan_khusus.hamil %}<span class="badge bg-warning text-dark kondisi-badge me-1">{{ keadaan_khusus.get_hamil_display }}</span>{% endif %}
+                {% if keadaan_khusus.hipertensi %}<span class="badge bg-danger kondisi-badge me-1">Hipertensi{% if keadaan_khusus.hipertensi_keterangan %}: {{ keadaan_khusus.hipertensi_keterangan|truncatechars:40 }}{% endif %}</span>{% endif %}
+                {% if keadaan_khusus.riwayat_jantung %}<span class="badge bg-danger kondisi-badge me-1">Riwayat Jantung{% if keadaan_khusus.riwayat_jantung_nama_dokter %}: {{ keadaan_khusus.riwayat_jantung_nama_dokter }}{% endif %}</span>{% endif %}
+                {% if keadaan_khusus.alergi_obat %}<span class="badge bg-danger kondisi-badge me-1">Alergi{% if keadaan_khusus.alergi_obat_nama %}: {{ keadaan_khusus.alergi_obat_nama }}{% endif %}</span>{% endif %}
+                {% if keadaan_khusus.keterangan %}<br><small class="text-muted">{{ keadaan_khusus.keterangan|truncatechars:80 }}</small>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% for k in riwayat_kunjungan %}
+        <div class="riwayat-item ps-3 mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>{{ k.tanggal_kunjungan|date:"d-m-Y" }}</strong>
+                    <small class="text-muted ms-2">{{ k.kode_pendaftaran }}</small>
+                </div>
+                <span class="badge bg-{% if k.status == 'SELESAI' %}secondary{% else %}warning{% endif %} small">{{ k.get_status_display }}</span>
+            </div>
+
+            {% with kk=k.keadaan_khusus %}
+            {% if kk %}
+            <div class="small ps-3 mt-2 border-start border-2 border-warning">
+                <span class="fw-bold text-warning">Keadaan Khusus:</span>
+                {% if kk.hamil %}<span class="badge bg-warning text-dark kondisi-badge me-1">{{ kk.get_hamil_display }}</span>{% endif %}
+                {% if kk.hipertensi %}<span class="badge bg-danger kondisi-badge me-1">Hipertensi</span>{% endif %}
+                {% if kk.riwayat_jantung %}<span class="badge bg-danger kondisi-badge me-1">Riwayat Jantung</span>{% endif %}
+                {% if kk.alergi_obat %}<span class="badge bg-danger kondisi-badge me-1">Alergi Obat</span>{% endif %}
+                {% if kk.keterangan %}<br><small class="text-muted">{{ kk.keterangan|truncatechars:80 }}</small>{% endif %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% with cppt_list=k.cppt.all %}
+            {% if cppt_list %}
+            {% for cppt in cppt_list %}
+            <div class="small ps-3 mt-2 border-start border-2">
+                {% if cppt.subjective %}
+                <div class="cppt-field"><span class="cppt-label">Keluhan:</span> {{ cppt.subjective|truncatechars:100 }}</div>
+                {% endif %}
+                <div class="cppt-field"><span class="cppt-label">Diagnosis:</span> {{ cppt.assessment }}</div>
+                <div class="cppt-field"><span class="cppt-label">Tindakan:</span> {{ cppt.plan }}</div>
+                <small class="text-muted">drg. {{ cppt.dokter.username }} &middot; {{ cppt.tanggal_jam|date:"d-m-Y H:i" }}</small>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="small text-muted ps-3 mt-2">Tidak ada pemeriksaan.</div>
+            {% endif %}
+            {% endwith %}
+
+            {% with r=k.resep %}
+            {% if r and r.detail.exists %}
+            <div class="mt-2 ps-3 small">
+                <span class="fw-bold">Resep:</span>
+                {% for d in r.detail.all %}
+                <span class="badge bg-light text-dark me-1">{{ d.obat.nama }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% with o=k.odontogram %}
+            {% if o and o.kondisi.exists %}
+            <div class="mt-2 ps-3">
+                {% include "odontogram/_riwayat_odonto.html" with pendaftaran=k %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="mt-2">
+                <a href="{% url 'dokter_periksa' k.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye me-1"></i>Detail
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 2.5rem;"></i>
+            <p class="mt-2 mb-0">Belum ada riwayat kunjungan sebelumnya.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card section-card">
+    <div class="card-header">
+        <span><i class="bi bi-grid-3x3-gap me-2"></i>Odontogram</span>
+    </div>
+    <div class="card-body">
+        <div id="odontogram-content" data-pendaftaran-id="{{ pendaftaran.id }}">
+            {% include "odontogram/odontogram_tab.html" %}
+        </div>
+    </div>
+</div>
+
+<div class="card section-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clipboard2-pulse me-2"></i>Pemeriksaan</span>
+        {% if cppt_list %}
+        <span class="badge bg-success">Terisi</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% for cppt in cppt_list %}
+        <div class="card bg-light mb-3">
+            <div class="card-body py-2">
+                <small class="text-muted">{{ cppt.tanggal_jam|date:"d-m-Y H:i" }} &middot; drg. {{ cppt.dokter.username }}</small>
+                <div class="row mt-2">
+                    {% if cppt.subjective %}
+                    <div class="col-md-6 mb-2">
+                        <span class="cppt-label">Keluhan</span>
+                        <div class="small">{{ cppt.subjective }}</div>
+                    </div>
+                    {% endif %}
+                    {% if cppt.objective %}
+                    <div class="col-md-6 mb-2">
+                        <span class="cppt-label">Pemeriksaan</span>
+                        <div class="small">{{ cppt.objective }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="col-md-6 mb-2">
+                        <span class="cppt-label">Diagnosis</span>
+                        <div class="small">{{ cppt.assessment }}</div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <span class="cppt-label">Tindakan</span>
+                        <div class="small">{{ cppt.plan }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted small mb-3">Belum ada data pemeriksaan.</p>
+        {% endfor %}
+
+        <hr>
+        <h6 class="mb-3">
+            {% if cppt_list %}Edit{% else %}Isi{% endif %} Pemeriksaan
+        </h6>
+        <form method="post" action="{% url 'dokter_cppt' pendaftaran.id %}" class="pemeriksaan-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Keluhan Pasien</label>
+                <textarea name="subjective" class="form-control" rows="2" placeholder="Keluhan yang disampaikan pasien...">{% for cppt in cppt_list %}{{ cppt.subjective }}{% endfor %}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Hasil Pemeriksaan</label>
+                <textarea name="objective" class="form-control" rows="2" placeholder="Temuan klinis, kondisi gigi dan mulut...">{% for cppt in cppt_list %}{{ cppt.objective }}{% endfor %}</textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Diagnosis <span class="text-danger">*</span></label>
+                    <textarea name="assessment" class="form-control" rows="2" placeholder="Diagnosis atau kesimpulan..." required>{% for cppt in cppt_list %}{{ cppt.assessment }}{% endfor %}</textarea>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Tindakan <span class="text-danger">*</span></label>
+                    <textarea name="plan" class="form-control" rows="2" placeholder="Rencana tindakan yang akan dilakukan..." required>{% for cppt in cppt_list %}{{ cppt.plan }}{% endfor %}</textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> {% if cppt_list %}Update{% else %}Simpan{% endif %} Pemeriksaan
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card section-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-prescription2 me-2"></i>Resep</span>
+        {% if resep and resep.detail.exists %}
+        <span class="badge bg-success">{{ resep.detail.count }} obat</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if resep and resep.detail.exists %}
+        <div class="table-responsive mb-3">
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nama Obat</th>
+                        <th>Jumlah</th>
+                        <th>Aturan Pakai</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in resep.detail.all %}
+                    <tr>
+                        <td>{{ d.obat.nama }}</td>
+                        <td>{{ d.jumlah|default:"-" }}</td>
+                        <td>{{ d.aturan_pakai }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-3">Belum ada resep.</p>
+        {% endif %}
+
+        <a href="{% url 'dokter_resep' pendaftaran.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-prescription2 me-1"></i>{% if resep and resep.detail.exists %}Ubah{% else %}Buat{% endif %} Resep
+        </a>
+    </div>
+</div>
+
+<form method="post" action="{% url 'dokter_selesai' pendaftaran.id %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success btn-lg w-100 mb-4">
+        <i class="bi bi-check-lg me-2"></i>Selesai Pelayanan
+    </button>
+</form>
+
+{% endblock %}

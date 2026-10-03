@@ -1,0 +1,141 @@
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>No</th>
+                    <th>Pasien</th>
+                    <th>Check-in</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if menunggu %}
+                <tr class="table-warning bg-opacity-10">
+                    <td colspan="5" class="py-2 ps-3">
+                        <strong><i class="bi bi-hourglass-split me-1"></i> MENUNGGU / DIPANGGIL ({{ menunggu|length }})</strong>
+                    </td>
+                </tr>
+                {% for antrian in menunggu %}
+                <tr>
+                    <td class="fw-bold">{{ antrian.nomor_antrian }}</td>
+                    <td>
+                        {{ antrian.pendaftaran.pasien.nama_lengkap }}<br>
+                        <small class="text-muted">{{ antrian.pendaftaran.pasien.no_hp }}</small>
+                    </td>
+                    <td>{{ antrian.waktu_checkin|time:"H:i" }}</td>
+                    <td>
+                        {% if antrian.status == 'MENUNGGU' %}
+                            <span class="badge bg-warning text-dark">Menunggu</span>
+                        {% elif antrian.status == 'DIPANGGIL' %}
+                            <span class="badge bg-success">Dipanggil</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button
+                            hx-post="{% url 'panggil_antrian' antrian.id %}"
+                            hx-target="#antrian-table"
+                            hx-swap="outerHTML"
+                            class="btn btn-success btn-sm"
+                            hx-indicator="#spinner"
+                            data-nomor="{{ antrian.nomor_antrian }}"
+                            data-nama="{{ antrian.pendaftaran.pasien.nama_lengkap }}"
+                            hx-on:htmx:after-request="playBellAndSpeak(this)"
+                        >
+                            <i class="bi bi-megaphone"></i> {% if antrian.status == 'DIPANGGIL' %}Panggil Ulang{% else %}Panggil{% endif %}
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+
+                {% if diperiksa %}
+                <tr class="table-info bg-opacity-10">
+                    <td colspan="5" class="py-2 ps-3">
+                        <strong><i class="bi bi-stethoscope me-1"></i> SEDANG DIPERIKSA ({{ diperiksa|length }})</strong>
+                    </td>
+                </tr>
+                {% for antrian in diperiksa %}
+                <tr>
+                    <td class="fw-bold">{{ antrian.nomor_antrian }}</td>
+                    <td>
+                        {{ antrian.pendaftaran.pasien.nama_lengkap }}<br>
+                        <small class="text-muted">{{ antrian.pendaftaran.pasien.no_hp }}</small>
+                    </td>
+                    <td>{{ antrian.waktu_checkin|time:"H:i" }}</td>
+                    <td><span class="badge bg-info">Diperiksa</span></td>
+                    <td><small class="text-muted">-</small></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+
+                {% if selesai %}
+                <tr class="table-secondary bg-opacity-10">
+                    <td colspan="5" class="py-2 ps-3">
+                        <strong><i class="bi bi-check-circle me-1"></i> SELESAI ({{ selesai|length }})</strong>
+                    </td>
+                </tr>
+                {% for antrian in selesai %}
+                <tr>
+                    <td class="fw-bold text-muted">{{ antrian.nomor_antrian }}</td>
+                    <td>
+                        {{ antrian.pendaftaran.pasien.nama_lengkap }}<br>
+                        <small class="text-muted">{{ antrian.pendaftaran.pasien.no_hp }}</small>
+                    </td>
+                    <td>{{ antrian.waktu_checkin|time:"H:i" }}</td>
+                    <td><span class="badge bg-secondary">Selesai</span></td>
+                    <td><small class="text-muted">-</small></td>
+                </tr>
+                {% endfor %}
+                {% endif %}
+
+                {% if not menunggu and not diperiksa and not selesai %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        Belum ada antrian hari ini.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+(function() {
+    let audioCtx = null;
+    window.playBell = function() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        const frequencies = [880, 1100, 1320];
+        frequencies.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, now + i * 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.15);
+            osc.stop(now + i * 0.15 + 0.3);
+        });
+    };
+
+    window.speak = function(nomor, nama) {
+        if (!('speechSynthesis' in window)) return;
+        const text = 'Nomor antrian ' + nomor + ', atas nama ' + nama + ', silakan menuju ruang pemeriksaan.';
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'id-ID';
+        utter.rate = 0.95;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utter);
+    };
+
+    window.playBellAndSpeak = function(btn) {
+        window.playBell();
+        window.speak(btn.getAttribute('data-nomor'), btn.getAttribute('data-nama'));
+    };
+})();
+</script>

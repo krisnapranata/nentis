@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Klinik Gigi - Scan QR{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <div class="display-5 fw-bold" style="color: var(--primary-dark);">Selamat Datang di Klinik Gigi</div>
+    <p class="text-muted mt-2">Scan QR untuk mendaftar dan langsung mendapat nomor antrean.</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card text-center">
+            <div class="card-header"><strong>DAFTAR PASIEN</strong></div>
+            <div class="card-body d-flex flex-column align-items-center py-4">
+                <img src="{% url 'qr_daftar' %}" alt="QR Daftar" class="img-fluid mb-3" style="max-width: 250px;">
+                <p class="text-muted small mb-3">Scan untuk mendaftar & langsung mendapat nomor antrean</p>
+                <a href="{% url 'daftar' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-pencil-square me-1"></i> Buka Form Daftar
+                </a>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>Informasi</h6>
+                <ol class="small text-muted mb-0">
+                    <li><strong>Daftar</strong> menggunakan QR <em>DAFTAR PASIEN</em> atau langsung di form pendaftaran.</li>
+                    <li>Setelah mendaftar, Anda langsung mendapat <strong>nomor antrean</strong>.</li>
+                    <li>Tunggu panggilan dari petugas.</li>
+                    <li>Petugas login melalui tombol <strong>Login</strong> di menu atas.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

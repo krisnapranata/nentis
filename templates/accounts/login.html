@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Login Petugas - Klinik Gigi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'home' %}" class="text-decoration-none text-muted small fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Beranda
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header text-center py-4">
+                <div class="display-6 mb-1"><i class="bi bi-person-lock"></i></div>
+                <h5 class="mb-0">Login Petugas</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted small mb-4">Masuk untuk petugas admisi, dokter, dan admin.</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" name="username" class="form-control" required autofocus>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                            <input type="password" name="password" class="form-control" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                    </button>
+                </form>
+                {% if form.errors %}
+                <div class="alert alert-danger mt-3 mb-0">
+                    Username atau password salah.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

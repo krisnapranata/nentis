@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Riwayat Pasien: {{ pasien.nama_lengkap }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-clock-history me-2"></i>Riwayat Lengkap: {{ pasien.nama_lengkap }}</h4>
+    <span class="badge bg-secondary">Total: {{ kunjungan_list|length }} kunjungan</span>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="row g-2">
+            <div class="col-sm-3"><small class="text-muted">Nama</small><br><strong>{{ pasien.nama_lengkap }}</strong></div>
+            <div class="col-sm-3"><small class="text-muted">No. HP</small><br><strong>{{ pasien.no_hp }}</strong></div>
+            <div class="col-sm-3"><small class="text-muted">No. KTP</small><br><strong>{{ pasien.no_ktp|default:"-" }}</strong></div>
+            <div class="col-sm-3"><small class="text-muted">Alamat</small><br><strong>{{ pasien.alamat|default:"-"|truncatechars:30 }}</strong></div>
+        </div>
+    </div>
+</div>
+
+{% for k in kunjungan_list %}
+<div class="card riwayat-card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <div>
+            <strong>{{ k.tanggal_kunjungan|date:"d-m-Y" }}</strong>
+            <small class="text-muted ms-2">Kode: {{ k.kode_pendaftaran }}</small>
+        </div>
+        <div>
+            <span class="badge bg-{% if k.status == 'SELESAI' %}secondary{% elif k.status == 'DIPERIKSA' %}info{% elif k.status == 'MENUNGGU' %}warning{% else %}primary{% endif %} me-2">
+                {{ k.get_status_display }}
+            </span>
+            <span class="badge bg-light text-dark">{{ k.get_cara_daftar_display }}</span>
+        </div>
+    </div>
+    <div class="card-body py-2">
+        {% with kk=k.keadaan_khusus %}
+        {% if kk %}
+        <div class="small mb-2 p-2 bg-warning bg-opacity-10 rounded border-start border-warning border-2">
+            <span class="fw-bold text-warning small">Keadaan Khusus:</span>
+            {% if kk.hamil %}<span class="badge bg-warning text-dark me-1">{{ kk.get_hamil_display }}</span>{% endif %}
+            {% if kk.hipertensi %}<span class="badge bg-danger me-1">Hipertensi{% if kk.hipertensi_keterangan %}: {{ kk.hipertensi_keterangan|truncatechars:40 }}{% endif %}</span>{% endif %}
+            {% if kk.riwayat_jantung %}<span class="badge bg-danger me-1">Riwayat Jantung{% if kk.riwayat_jantung_nama_dokter %}: {{ kk.riwayat_jantung_nama_dokter }}{% endif %}</span>{% endif %}
+            {% if kk.alergi_obat %}<span class="badge bg-danger me-1">Alergi{% if kk.alergi_obat_nama %}: {{ kk.alergi_obat_nama }}{% endif %}</span>{% endif %}
+            {% if kk.keterangan %}<br><small class="text-muted">{{ kk.keterangan }}</small>{% endif %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="mb-2"><i class="bi bi-clipboard2-pulse me-1"></i>Pemeriksaan</h6>
+                {% with cppt_list=k.cppt.all %}
+                {% if cppt_list %}
+                {% for cppt in cppt_list %}
+                <div class="card bg-light mb-2">
+                    <div class="card-body py-2 px-3 small">
+                        <div class="text-muted mb-1">
+                            <i class="bi bi-person-badge me-1"></i> drg. {{ cppt.dokter.username }}
+                            <span class="ms-2"><i class="bi bi-clock me-1"></i>{{ cppt.tanggal_jam|date:"d-m-Y H:i" }}</span>
+                        </div>
+                        <div class="row g-1">
+                            <div class="col-md-6">
+                                <div class="cppt-field"><span class="cppt-label">Keluhan:</span> {{ cppt.subjective }}</div>
+                                <div class="cppt-field"><span class="cppt-label">Pemeriksaan:</span> {{ cppt.objective }}</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="cppt-field"><span class="cppt-label">Diagnosis:</span> {{ cppt.assessment }}</div>
+                                <div class="cppt-field"><span class="cppt-label">Tindakan:</span> {{ cppt.plan }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-muted small">Tidak ada pemeriksaan.</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+            <div class="col-md-4">
+                <h6 class="mb-2"><i class="bi bi-prescription2 me-1"></i>Resep</h6>
+                {% with r=k.resep %}
+                {% if r and r.detail.exists %}
+                <div class="table-responsive">
+                    <table class="table table-sm small mb-0">
+                        <thead>
+                            <tr><th>Obat</th><th>Jml</th><th>Aturan</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for d in r.detail.all %}
+                            <tr>
+                                <td>{{ d.obat.nama }}</td>
+                                <td>{{ d.jumlah|default:"-" }}</td>
+                                <td><small>{{ d.aturan_pakai|truncatechars:30 }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted small">Tidak ada resep.</p>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        {% with o=k.odontogram %}
+        {% if o and o.kondisi.exists %}
+        <div class="mt-2">
+            {% include "odontogram/_riwayat_odonto.html" with pendaftaran=k %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        <div class="mt-2">
+            <a href="{% url 'dokter_periksa' k.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye"></i> Lihat Detail
+            </a>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-inbox" style="font-size: 4rem;"></i>
+        <p class="mt-3">Tidak ada riwayat kunjungan.</p>
+    </div>
+</div>
+{% endfor %}
+
+<div class="mt-4">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Kembali
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    .riwayat-card { border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-radius: 12px; }
+    .riwayat-card .card-header { border-radius: 12px 12px 0 0 !important; background: #f8f9fa; border-bottom: 1px solid #e9ecef; }
+    .cppt-field { margin-bottom: 4px; }
+    .cppt-label { font-weight: 600; color: var(--primary); }
+</style>
+{% endblock %}

@@ -136,6 +136,20 @@ Lalu di UI Nginx Proxy Manager buat **Proxy Host**:
 
 Aplikasi tersedia di `https://nentis.krisna-ai.web.id`.
 
+### Update / deploy perubahan kode
+
+File yang terpasang di container di-bake dari image, jadi setiap perubahan kode
+perlu rebuild image `web`:
+
+```bash
+cd /srv/nentis
+git pull
+docker compose -f docker-compose.server.yml -f docker-compose.npm.yml up -d --build
+```
+
+`up -d --build` hanya me-recreate container `web` bila image berubah; `db`
+tidak di-restart kecuali konfigurasinya berubah.
+
 ### Jika Docker Hub diblokir (production)
 
 ```bash
